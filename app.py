@@ -1,5 +1,7 @@
 import requests
 import streamlit as st
+import os
+API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8005")
 
 # =============================
 # CONFIG
