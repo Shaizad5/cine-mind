@@ -65,8 +65,8 @@ def goto_details(tmdb_id: int):
 # =============================
 # API HELPERS
 # =============================
- @st.cache_data(ttl=30)  # short cache for autocomplete
- def api_get_json(path: str, params: dict | None = None):
+@st.cache_data(ttl=30)  # short cache for autocomplete
+def api_get_json(path: str, params: dict | None = None):
     try:
        r = requests.get(f"{API_BASE}{path}", params=params, timeout=25)
        if r.status_code >= 400:
