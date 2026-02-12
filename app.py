@@ -65,17 +65,15 @@ def goto_details(tmdb_id: int):
 # =============================
 # API HELPERS
 # =============================
-@st.cache_data(ttl=30)  # short cache for autocomplete
+@st.cache_data(ttl=30)
 def api_get_json(path: str, params: dict | None = None):
     try:
-       r = requests.get(f"{API_BASE}{path}", params=params, timeout=25)
-       if r.status_code >= 400:
+        r = requests.get(f"{API_BASE}{path}", params=params, timeout=25)
+        if r.status_code >= 400:
             return None, f"HTTP {r.status_code}: {r.text[:300]}"
         return r.json(), None
     except Exception as e:
         return None, f"Request failed: {e}"
-
-
 def poster_grid(cards, cols=6, key_prefix="grid"):
     if not cards:
         st.info("No movies to show.")
