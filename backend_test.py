@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 class MovieRecommenderAPITester:
-    def __init__(self, base_url="https://e1d8e5ed-e92e-4d49-bfe2-a64c760c8a0f.preview.emergentagent.com"):
+    def __init__(self, base_url="https://cinema-ai-3.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_id = f"test_session_{datetime.now().strftime('%H%M%S')}"
         self.tests_run = 0
@@ -322,6 +322,215 @@ class MovieRecommenderAPITester:
                 return True
         return False
 
+    def test_watchlist_functionality(self):
+        """Test watchlist add, get, check, delete operations"""
+        movie_id = 27205  # Inception
+        
+        # Test adding to watchlist
+        watchlist_data = {
+            "tmdb_id": movie_id,
+            "session_id": self.session_id,
+            "movie_title": "Inception",
+            "poster_url": "https://image.tmdb.org/t/p/w500/test.jpg"
+        }
+        
+        success, response = self.run_test(
+            "Add to Watchlist",
+            "POST",
+            "watchlist",
+            200,
+            data=watchlist_data
+        )
+        
+        if not success:
+            return False
+            
+        # Test checking if in watchlist
+        success, data = self.run_test(
+            "Check Watchlist",
+            "GET",
+            f"watchlist/check?tmdb_id={movie_id}&session_id={self.session_id}",
+            200
+        )
+        
+        if success:
+            if data.get('in_watchlist') == True:
+                self.log_result("Watchlist Check", True, {"in_watchlist": True})
+            else:
+                self.log_result("Watchlist Check", False, error_msg=f"Expected in_watchlist=True, got {data.get('in_watchlist')}")
+                return False
+        else:
+            return False
+            
+        # Test getting watchlist
+        success, data = self.run_test(
+            "Get Watchlist",
+            "GET",
+            f"watchlist?session_id={self.session_id}",
+            200
+        )
+        
+        if success:
+            if isinstance(data.get('items'), list) and len(data['items']) > 0:
+                self.log_result("Get Watchlist Structure", True, {"count": len(data['items'])})
+            else:
+                self.log_result("Get Watchlist Structure", False, error_msg="No items in watchlist or wrong structure")
+                return False
+        else:
+            return False
+            
+        # Test removing from watchlist
+        success, data = self.run_test(
+            "Remove from Watchlist",
+            "DELETE",
+            f"watchlist?tmdb_id={movie_id}&session_id={self.session_id}",
+            200
+        )
+        
+        if not success:
+            return False
+            
+        # Verify removal
+        success, data = self.run_test(
+            "Check Watchlist After Removal",
+            "GET",
+            f"watchlist/check?tmdb_id={movie_id}&session_id={self.session_id}",
+            200
+        )
+        
+        if success:
+            if data.get('in_watchlist') == False:
+                self.log_result("Watchlist Removal Verification", True, {"in_watchlist": False})
+                return True
+            else:
+                self.log_result("Watchlist Removal Verification", False, error_msg=f"Expected in_watchlist=False, got {data.get('in_watchlist')}")
+                return False
+        return False
+
+    def test_watch_providers(self):
+        """Test streaming providers endpoint"""
+        movie_id = 27205  # Inception
+        
+        success, data = self.run_test(
+            "Watch Providers",
+            "GET",
+            f"movie/{movie_id}/watch-providers",
+            200
+        )
+        
+        if success:
+            if 'providers' in data:
+                self.log_result("Watch Providers Structure", True, {
+                    "providers_countries": list(data['providers'].keys()) if data['providers'] else []
+                })
+                return True
+            else:
+                self.log_result("Watch Providers Structure", False, error_msg="Missing providers field")
+                return False
+        return False
+
+    def test_trending_by_region(self):
+        """Test trending by region endpoint"""
+        test_regions = ['US', 'IN', 'KR', 'JP', 'GB']
+        all_passed = True
+        
+        for region in test_regions:
+            success, data = self.run_test(
+                f"Trending by Region - {region}",
+                "GET",
+                f"trending/region?region={region}",
+                200
+            )
+            
+            if success:
+                if isinstance(data.get('results'), list) and data.get('region') == region:
+                    self.log_result(f"Trending {region} Structure", True, {
+                        "count": len(data['results']),
+                        "region": data.get('region')
+                    })
+                else:
+                    self.log_result(f"Trending {region} Structure", False, 
+                                  error_msg="Invalid results structure or region mismatch")
+                    all_passed = False
+            else:
+                all_passed = False
+                
+        return all_passed
+
+    def test_multilingual_support(self):
+        """Test multi-language support"""
+        languages = ['en-US', 'hi-IN', 'es-ES', 'ko-KR', 'ja-JP', 'fr-FR', 'de-DE', 'ar-SA']
+        all_passed = True
+        
+        for lang in languages:
+            # Test genres endpoint with different languages
+            success, data = self.run_test(
+                f"Genres - {lang}",
+                "GET",
+                f"genres?lang={lang}",
+                200
+            )
+            
+            if success:
+                if isinstance(data, list) and len(data) > 0:
+                    self.log_result(f"Genres {lang} Structure", True, {"count": len(data)})
+                else:
+                    self.log_result(f"Genres {lang} Structure", False, error_msg="No genres returned")
+                    all_passed = False
+            else:
+                all_passed = False
+                
+            # Test home endpoint with different languages  
+            success, data = self.run_test(
+                f"Home Popular - {lang}",
+                "GET",
+                f"home?category=popular&lang={lang}&limit=3",
+                200
+            )
+            
+            if success:
+                if isinstance(data.get('results'), list):
+                    self.log_result(f"Home {lang} Structure", True, {"count": len(data['results'])})
+                else:
+                    self.log_result(f"Home {lang} Structure", False, error_msg="Invalid results structure")
+                    all_passed = False
+            else:
+                all_passed = False
+                
+        return all_passed
+
+    def run_test(self, name, method, endpoint, expected_status, data=None, timeout=10):
+        """Run a single API test - updated to handle DELETE method"""
+        url = f"{self.base_url}/api/{endpoint}"
+        headers = {'Content-Type': 'application/json'}
+        
+        print(f"\n🔍 Testing {name} - {method} {endpoint}")
+        
+        try:
+            if method == 'GET':
+                response = requests.get(url, headers=headers, timeout=timeout)
+            elif method == 'POST':
+                response = requests.post(url, json=data, headers=headers, timeout=timeout)
+            elif method == 'DELETE':
+                response = requests.delete(url, headers=headers, timeout=timeout)
+            
+            success = response.status_code == expected_status
+            if success:
+                response_data = response.json() if response.text else {}
+                self.log_result(name, True, response_data)
+                return True, response_data
+            else:
+                error_msg = f"Expected {expected_status}, got {response.status_code}. Response: {response.text[:200]}"
+                self.log_result(name, False, error_msg=error_msg)
+                return False, {}
+
+        except requests.exceptions.Timeout:
+            self.log_result(name, False, error_msg=f"Request timeout after {timeout}s")
+            return False, {}
+        except Exception as e:
+            self.log_result(name, False, error_msg=str(e))
+            return False, {}
+
     def run_all_tests(self):
         """Run all API tests"""
         print(f"🚀 Starting Movie Recommender API Tests")
@@ -335,6 +544,10 @@ class MovieRecommenderAPITester:
             ("Home Categories", self.test_home_categories),
             ("Search Functionality", self.test_search),
             ("Movie Details", self.test_movie_details),
+            ("Multi-language Support", self.test_multilingual_support),
+            ("Watchlist Functionality", self.test_watchlist_functionality),
+            ("Watch Providers", self.test_watch_providers),
+            ("Trending by Region", self.test_trending_by_region),
             ("Ratings System", self.test_ratings),
             ("Reviews System", self.test_reviews),
             ("Recommendation Engines", self.test_recommendations),

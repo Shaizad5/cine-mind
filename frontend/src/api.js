@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getCurrentLang, getTranslation } from './i18n';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -7,17 +8,19 @@ const api = axios.create({
   timeout: 30000,
 });
 
-export const getHome = (category = 'popular', page = 1) =>
-  api.get('/home', { params: { category, page, limit: 20 } });
+const getTmdbLang = () => getTranslation(getCurrentLang()).tmdb;
+
+export const getHome = (category = 'popular', page = 1, region = '') =>
+  api.get('/home', { params: { category, page, limit: 20, lang: getTmdbLang(), region } });
 
 export const searchMovies = (query, page = 1) =>
-  api.get('/search', { params: { query, page } });
+  api.get('/search', { params: { query, page, lang: getTmdbLang() } });
 
 export const getMovieDetails = (tmdbId) =>
-  api.get(`/movie/${tmdbId}`);
+  api.get(`/movie/${tmdbId}`, { params: { lang: getTmdbLang() } });
 
 export const getGenres = () =>
-  api.get('/genres');
+  api.get('/genres', { params: { lang: getTmdbLang() } });
 
 export const discoverByGenre = (genreId, page = 1) =>
   api.get('/discover', { params: { genre_id: genreId, page } });
@@ -57,5 +60,23 @@ export const getStats = () =>
 
 export const getHealth = () =>
   api.get('/health');
+
+export const getWatchProviders = (tmdbId) =>
+  api.get(`/movie/${tmdbId}/watch-providers`);
+
+export const addToWatchlist = (tmdbId, sessionId, movieTitle = '', posterUrl = '') =>
+  api.post('/watchlist', { tmdb_id: tmdbId, session_id: sessionId, movie_title: movieTitle, poster_url: posterUrl });
+
+export const removeFromWatchlist = (tmdbId, sessionId) =>
+  api.delete('/watchlist', { params: { tmdb_id: tmdbId, session_id: sessionId } });
+
+export const getWatchlist = (sessionId) =>
+  api.get('/watchlist', { params: { session_id: sessionId } });
+
+export const checkWatchlist = (tmdbId, sessionId) =>
+  api.get('/watchlist/check', { params: { tmdb_id: tmdbId, session_id: sessionId } });
+
+export const getTrendingByRegion = (region = 'US', page = 1) =>
+  api.get('/trending/region', { params: { region, page } });
 
 export default api;

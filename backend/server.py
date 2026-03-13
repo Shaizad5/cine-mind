@@ -39,12 +39,15 @@ db = client[DB_NAME]
 ratings_col = db["ratings"]
 reviews_col = db["reviews"]
 collab_col = db["collaborative_data"]
+watchlist_col = db["watchlist"]
 
 # Create indexes
 ratings_col.create_index([("tmdb_id", 1)])
 ratings_col.create_index([("session_id", 1)])
 reviews_col.create_index([("tmdb_id", 1)])
 collab_col.create_index([("session_id", 1)])
+watchlist_col.create_index([("session_id", 1)])
+watchlist_col.create_index([("session_id", 1), ("tmdb_id", 1)], unique=True)
 
 # =========================
 # FASTAPI APP
@@ -124,6 +127,12 @@ class MoodMatchRequest(BaseModel):
     mood: str
     session_id: Optional[str] = None
 
+class WatchlistRequest(BaseModel):
+    tmdb_id: int
+    session_id: str
+    movie_title: Optional[str] = None
+    poster_url: Optional[str] = None
+
 # =========================
 # UTILS
 # =========================
@@ -164,9 +173,9 @@ async def tmdb_cards_from_results(results: List[dict], limit: int = 20) -> List[
         ))
     return out
 
-async def tmdb_movie_details(movie_id: int) -> TMDBMovieDetails:
+async def tmdb_movie_details(movie_id: int, language: str = "en-US") -> TMDBMovieDetails:
     data = await tmdb_get(f"/movie/{movie_id}", {
-        "language": "en-US",
+        "language": language,
         "append_to_response": "credits,videos"
     })
     if not data:
@@ -465,11 +474,16 @@ async def home(
     category: str = Query("popular"),
     limit: int = Query(20, ge=1, le=50),
     page: int = Query(1, ge=1, le=10),
+    lang: str = Query("en-US"),
+    region: str = Query(""),
 ):
+    params = {"language": lang, "page": page}
+    if region:
+        params["region"] = region
     if category == "trending":
-        data = await tmdb_get("/trending/movie/day", {"language": "en-US", "page": page})
+        data = await tmdb_get("/trending/movie/day", params)
     elif category in {"popular", "top_rated", "upcoming", "now_playing"}:
-        data = await tmdb_get(f"/movie/{category}", {"language": "en-US", "page": page})
+        data = await tmdb_get(f"/movie/{category}", params)
     else:
         raise HTTPException(status_code=400, detail="Invalid category")
     
@@ -482,11 +496,12 @@ async def home(
 async def search_movies(
     query: str = Query(..., min_length=1),
     page: int = Query(1, ge=1, le=10),
+    lang: str = Query("en-US"),
 ):
     data = await tmdb_get("/search/movie", {
         "query": query,
         "include_adult": "false",
-        "language": "en-US",
+        "language": lang,
         "page": page,
     })
     results = data.get("results", [])
@@ -495,8 +510,8 @@ async def search_movies(
 
 # ---------- MOVIE DETAILS ----------
 @app.get("/api/movie/{tmdb_id}")
-async def movie_details_route(tmdb_id: int):
-    details = await tmdb_movie_details(tmdb_id)
+async def movie_details_route(tmdb_id: int, lang: str = Query("en-US")):
+    details = await tmdb_movie_details(tmdb_id, language=lang)
     result = details.dict()
     
     # Add community rating
@@ -516,8 +531,8 @@ async def movie_details_route(tmdb_id: int):
 
 # ---------- GENRES ----------
 @app.get("/api/genres")
-async def get_genres():
-    data = await tmdb_get("/genre/movie/list", {"language": "en-US"})
+async def get_genres(lang: str = Query("en-US")):
+    data = await tmdb_get("/genre/movie/list", {"language": lang})
     return data.get("genres", [])
 
 # ---------- DISCOVER BY GENRE ----------
@@ -786,3 +801,84 @@ async def get_stats():
             for t in top_rated
         ]
     }
+
+# ---------- WATCH PROVIDERS ----------
+@app.get("/api/movie/{tmdb_id}/watch-providers")
+async def get_watch_providers(tmdb_id: int):
+    data = await tmdb_get(f"/movie/{tmdb_id}/watch/providers", {})
+    if not data or "results" not in data:
+        return {"providers": {}, "link": None}
+    
+    results = data.get("results", {})
+    providers_by_country = {}
+    
+    for country_code, country_data in results.items():
+        providers = []
+        for provider_type in ["flatrate", "rent", "buy", "free"]:
+            for p in country_data.get(provider_type, []):
+                providers.append({
+                    "name": p.get("provider_name", ""),
+                    "logo": make_img_url(p.get("logo_path"), "w92"),
+                    "type": provider_type,
+                    "priority": p.get("display_priority", 999),
+                })
+        if providers:
+            # Deduplicate by name, keep first occurrence
+            seen = set()
+            unique_providers = []
+            for pr in providers:
+                if pr["name"] not in seen:
+                    seen.add(pr["name"])
+                    unique_providers.append(pr)
+            providers_by_country[country_code] = {
+                "providers": unique_providers,
+                "link": country_data.get("link", ""),
+            }
+    
+    return {"providers": providers_by_country}
+
+# ---------- WATCHLIST ----------
+@app.post("/api/watchlist")
+async def add_to_watchlist(req: WatchlistRequest):
+    try:
+        watchlist_col.update_one(
+            {"session_id": req.session_id, "tmdb_id": req.tmdb_id},
+            {"$set": {
+                "movie_title": req.movie_title or "",
+                "poster_url": req.poster_url or "",
+                "added_at": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True,
+        )
+        return {"success": True, "action": "added"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/watchlist")
+async def remove_from_watchlist(tmdb_id: int = Query(...), session_id: str = Query(...)):
+    watchlist_col.delete_one({"session_id": session_id, "tmdb_id": tmdb_id})
+    return {"success": True, "action": "removed"}
+
+@app.get("/api/watchlist")
+async def get_watchlist(session_id: str = Query(...)):
+    items = list(watchlist_col.find(
+        {"session_id": session_id},
+        {"_id": 0}
+    ).sort("added_at", -1))
+    return {"items": items, "total": len(items)}
+
+@app.get("/api/watchlist/check")
+async def check_watchlist(tmdb_id: int = Query(...), session_id: str = Query(...)):
+    exists = watchlist_col.find_one({"session_id": session_id, "tmdb_id": tmdb_id})
+    return {"in_watchlist": bool(exists)}
+
+# ---------- TRENDING BY REGION ----------
+@app.get("/api/trending/region")
+async def trending_by_region(
+    region: str = Query("US"),
+    page: int = Query(1, ge=1, le=10),
+):
+    data = await tmdb_get("/trending/movie/day", {"language": "en-US", "page": page, "region": region})
+    results = data.get("results", [])
+    cards = await tmdb_cards_from_results(results, limit=20)
+    return {"results": [c.dict() for c in cards], "region": region}
