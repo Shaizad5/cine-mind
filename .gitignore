@@ -2,3 +2,7 @@
 .env
 .DS_Store
 *.pyc
+-e 
+# Environment files
+*.env
+*.env.*
