@@ -50,7 +50,7 @@ export const likeReview = (tmdbId, authorName) =>
   api.post('/reviews/like', { tmdb_id: tmdbId, author_name: authorName });
 
 export const moodMatch = (mood, sessionId = '') =>
-  api.post('/mood-match', { mood, session_id: sessionId });
+  api.post('/mood-match', { mood, session_id: sessionId }, { timeout: 60000 });
 
 export const getStats = () =>
   api.get('/stats');
