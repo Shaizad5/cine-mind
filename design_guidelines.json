@@ -1,0 +1,151 @@
+{
+  "project_name": "CineMind - AI Movie Recommender",
+  "design_philosophy": {
+    "persona": "E1 - The Anti-AI Designer",
+    "core_principles": [
+      "Fusion over Imitation: Mix Cinematic Noir with Modern Swiss Grid.",
+      "Emotion First: Dark, immersive, mysterious.",
+      "Content is King: Posters are the heroes. UI recedes.",
+      "Negative Space: Luxurious spacing to let the darkness breathe.",
+      "Asymmetry: Use the 'Tetris' Bento Grid for visual tension."
+    ],
+    "hall_of_shame": [
+      "Purple/Teal gradients (Overused AI trope).",
+      "Inter font for headings (Too generic).",
+      "Centered layouts (Boring).",
+      "Default Bootstrap grids."
+    ]
+  },
+  "design_system": {
+    "theme": "dark",
+    "typography": {
+      "primary_font": "Manrope",
+      "secondary_font": "Playfair Display",
+      "google_fonts_import": "@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');",
+      "usage": {
+        "headings": "font-serif tracking-tight",
+        "body": "font-sans tracking-normal",
+        "ui_labels": "font-sans uppercase tracking-widest text-xs font-semibold"
+      }
+    },
+    "colors": {
+      "background": "#050505",
+      "foreground": "#fafafa",
+      "card": "#121212",
+      "card_foreground": "#ffffff",
+      "popover": "#121212",
+      "popover_foreground": "#ffffff",
+      "primary": "#e11d48",
+      "primary_foreground": "#ffffff",
+      "secondary": "#7c3aed",
+      "secondary_foreground": "#ffffff",
+      "muted": "#262626",
+      "muted_foreground": "#a1a1aa",
+      "accent": "#f59e0b",
+      "accent_foreground": "#000000",
+      "destructive": "#7f1d1d",
+      "destructive_foreground": "#ffffff",
+      "border": "#27272a",
+      "input": "#27272a",
+      "ring": "#e11d48",
+      "chart_1": "#e11d48",
+      "chart_2": "#7c3aed",
+      "chart_3": "#f59e0b",
+      "chart_4": "#10b981",
+      "chart_5": "#3b82f6"
+    },
+    "spacing": {
+      "container_padding": "p-8 md:p-12 lg:p-16",
+      "section_gap": "gap-12 md:gap-24",
+      "item_gap": "gap-4 md:gap-8"
+    },
+    "radius": {
+      "default": "0.75rem",
+      "sm": "0.5rem",
+      "lg": "1rem",
+      "pill": "9999px"
+    },
+    "shadows": {
+      "glow": "0 0 20px -5px rgba(225, 29, 72, 0.5)",
+      "card": "0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3)"
+    }
+  },
+  "layout_strategies": {
+    "home_page": {
+      "type": "bento_grid",
+      "structure": "Hero section with full-width cinematic backdrop. Trending movies in a 'Tetris' grid (mix of 2x2, 1x2, 1x1 cards).",
+      "key_elements": ["Hero Carousel", "Trending Bento Grid", "AI Mood Matcher Teaser", "Genre Horizontal Scroll"]
+    },
+    "movie_detail": {
+      "type": "immersive_sidebar",
+      "structure": "Full-screen backdrop with gradient overlay. Content floats over it. Left sidebar for poster (sticky). Right content area for details.",
+      "key_elements": ["Backdrop Hero", "Poster Card", "Cast Horizontal List", "Reviews Stack", "Recommendations Grid"]
+    },
+    "mood_matcher": {
+      "type": "centered_focus",
+      "structure": "Minimalist, central input focus. Background is abstract/blurred. Results appear as a 'deck' of cards.",
+      "key_elements": ["Large Input Field", "Abstract Background", "Result Cards"]
+    }
+  },
+  "component_guidelines": {
+    "Button": {
+      "style": "pill",
+      "variants": {
+        "default": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-glow transition-all duration-300",
+        "outline": "border border-input bg-transparent hover:bg-accent hover:text-accent-foreground",
+        "ghost": "hover:bg-accent hover:text-accent-foreground"
+      }
+    },
+    "Card": {
+      "style": "glassmorphism",
+      "classes": "bg-black/40 backdrop-blur-md border border-white/10 hover:border-white/20 transition-all duration-300"
+    },
+    "Input": {
+      "style": "minimal",
+      "classes": "bg-white/5 border-white/10 focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 rounded-lg"
+    },
+    "Badge": {
+      "style": "solid",
+      "classes": "bg-secondary/20 text-secondary-foreground hover:bg-secondary/30 border-none px-3 py-1 rounded-full text-xs uppercase tracking-wider"
+    }
+  },
+  "assets": {
+    "images": [
+      {
+        "category": "hero_background",
+        "url": "https://images.unsplash.com/photo-1694106722170-4b8593a2f010?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Cinematic projector light, use for 'About' or technical sections."
+      },
+      {
+        "category": "audience_emotion",
+        "url": "https://images.unsplash.com/photo-1675295275003-552a83138c0c?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Woman in theater, use for 'Mood Matcher' background or testimonials."
+      },
+      {
+        "category": "home_cinema",
+        "url": "https://images.unsplash.com/photo-1554415824-7cc47f524e53?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Dark room TV, generic cinematic vibe."
+      }
+    ],
+    "icons": "lucide-react"
+  },
+  "universal_guidelines": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER: use AI assistant Emoji characters for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Create new components that match the style and conventions of existing components when needed.",
+    "Components MUST use named exports (export const ComponentName = ...).",
+    "Pages MUST use default exports (export default function PageName() {...}).",
+    "Use sonner for toasts.",
+    "All interactive and key informational elements MUST include a data-testid attribute."
+  ]
+}
